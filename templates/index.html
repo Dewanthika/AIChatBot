@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ABC Banking Assistant</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        #chat-box { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
+        #user-input { width: 70%; padding: 5px; }
+        button { padding: 5px 10px; }
+    </style>
+</head>
+<body>
+
+<h2>ABC Banking Assistant</h2>
+
+<div id="chat-box"></div>
+
+<form id="chat-form">
+    <input type="text" id="user-input" autocomplete="off" placeholder="Ask a banking question..." required>
+    <button type="submit">Send</button>
+</form>
+
+<script>
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    let pendingQuestion = null;
+
+    function addMessage(sender, text) {
+        const messageDiv = document.createElement('div');
+        messageDiv.textContent = `${sender}: ${text}`;
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    document.getElementById('chat-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        addMessage('You', message);
+        userInput.value = '';
+
+        if (pendingQuestion !== null) {
+            // Teach new answer
+            fetch('/teach', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: pendingQuestion, answer: message })
+            })
+            .then(res => res.json())
+            .then(data => {
+                addMessage('Bot', data.message);
+                pendingQuestion = null;
+            });
+        } else {
+            // Ask the bot
+            fetch('/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'message=' + encodeURIComponent(message)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.needs_learning) {
+                    addMessage('Bot', data.bot_response);
+                    pendingQuestion = data.question;
+                } else {
+                    addMessage('Bot', data.bot_response);
+                }
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
