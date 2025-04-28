@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h2>Admin Dashboard - Add Question & Answer</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        <h3>Upload Excel Sheet (Question & Answer):</h3>
+        <input type="file" name="excel_file" accept=".xlsx" required><br><br>
+        <button type="submit">Upload Excel</button>
+    </form>
+
+    <hr>
+
+    <form method="POST">
+        <h3>Manually Add New FAQ:</h3>
+        Question: <input type="text" name="question" required><br><br>
+        Answer: <textarea name="answer" required></textarea><br><br>
+        <button type="submit">Add FAQ</button>
+    </form>
+
+    <hr>
+
+    <h3>Unanswered Questions:</h3>
+    {% for id, question in unanswered %}
+        <form method="POST" style="border:1px solid #ccc; padding:10px; margin:10px;">
+            <b>Q:</b> {{ question }}<br><br>
+            <input type="hidden" name="answer_id" value="{{ id }}">
+            Answer: <textarea name="answer_text" required></textarea><br><br>
+            <button type="submit">Submit Answer</button>
+        </form>
+    {% else %}
+        <p>No unanswered questions!</p>
+    {% endfor %}
+
+    <hr>
+
+    <h3>All FAQs:</h3>
+    <table border="1" cellpadding="5" cellspacing="0">
+        <tr>
+            <th>Question</th>
+            <th>Answer</th>
+            <th>Action</th>
+        </tr>
+        {% for id, question, answer in data %}
+        <tr>
+            <form method="POST">
+                <td><input type="text" name="updated_question" value="{{ question }}" required style="width: 300px;"></td>
+                <td><textarea name="updated_answer" required style="width: 300px;">{{ answer }}</textarea></td>
+                <td>
+                    <input type="hidden" name="update_id" value="{{ id }}">
+                    <button type="submit">Update</button>
+                </td>
+            </form>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br><a href="/logout">Logout</a>
+</body>
+</html>

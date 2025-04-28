@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Guest Chatbot</title>
+</head>
+<body>
+    <h2>Welcome to Bank Chatbot</h2>
+    <form id="chat-form">
+        <input type="text" id="question" placeholder="Type your question..." required>
+        <button type="submit">Ask</button>
+    </form>
+    <div id="response" style="margin-top:20px;"></div>
+
+    <script>
+        document.getElementById('chat-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const question = document.getElementById('question').value;
+
+            const response = await fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `question=${encodeURIComponent(question)}`
+            });
+
+            const data = await response.json();
+            document.getElementById('response').innerText = data.bot_response;
+        });
+    </script>
+    <p><a href="/login">Admin Login</a></p>
+</body>
+</html>
