@@ -3,6 +3,15 @@ import sqlite3
 from fuzzywuzzy import fuzz
 import pandas as pd
 import os
+import nltk
+from nltk.stem import WordNetLemmatizer
+import json
+
+# Uncomment if running for the first time
+# nltk.download('punkt')
+# nltk.download('wordnet')
+
+lemmatizer = WordNetLemmatizer()
 
 app = Flask(__name__)
 app.secret_key = '12345'
@@ -34,44 +43,42 @@ def init_db():
 
 init_db()
 
-def get_answer(question):
+def preprocess_text(text):
+    tokens = nltk.word_tokenize(text.lower())
+    return ' '.join([lemmatizer.lemmatize(word) for word in tokens])
+
+def get_answer(user_question):
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute("SELECT question, answer FROM facts")
     rows = cursor.fetchall()
     conn.close()
 
+    user_processed = preprocess_text(user_question)
     best_match = None
     best_score = 0
 
     for db_question, answer in rows:
-        # Different fuzzy methods
-        partial_score = fuzz.partial_ratio(question.lower(), db_question.lower())
-        token_sort_score = fuzz.token_sort_ratio(question.lower(), db_question.lower())
-        token_set_score = fuzz.token_set_ratio(question.lower(), db_question.lower())
+        db_processed = preprocess_text(db_question)
+        partial = fuzz.partial_ratio(user_processed, db_processed)
+        token_sort = fuzz.token_sort_ratio(user_processed, db_processed)
+        token_set = fuzz.token_set_ratio(user_processed, db_processed)
+        score = (partial * 0.3) + (token_sort * 0.3) + (token_set * 0.4)
+        if score > best_score:
+            best_score = score
+            best_match = answer
 
-        # Combined weighted score
-        combined_score = (partial_score * 0.3) + (token_sort_score * 0.3) + (token_set_score * 0.4)
-
-        if combined_score > best_score:
-            best_score = combined_score
-            best_match = (db_question, answer)
-
-    if best_score >= 75:  # Slightly lower threshold for better flexibility
-        return {"bot_response": best_match[1], "needs_learning": False}
+    if best_score >= 75:
+        return {"bot_response": best_match, "needs_learning": False}
     else:
-        save_unanswered_question(question)
-        return {
-            "bot_response": "Sorry, I don't have an answer for that. Please call us at +1-800-123-456 for more information.",
-            "needs_learning": True
-        }
+        save_unanswered_question(user_question)
+        return {"bot_response": "Sorry, I don't have an answer for that. Please call us at +1-800-123-456.", "needs_learning": True}
 
 def save_unanswered_question(question):
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM unanswered_questions WHERE question = ?", (question,))
-    existing = cursor.fetchone()
-    if not existing:
+    if not cursor.fetchone():
         cursor.execute("INSERT INTO unanswered_questions (question) VALUES (?)", (question,))
         conn.commit()
     conn.close()
@@ -83,13 +90,10 @@ def guest():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if username == 'admin' and password == 'admin123':
+        if request.form['username'] == 'admin' and request.form['password'] == 'admin123':
             session['user'] = 'admin'
             return redirect('/admin')
-        else:
-            return render_template('login.html', error="Invalid credentials")
+        return render_template('login.html', error="Invalid credentials")
     return render_template('login.html')
 
 @app.route('/admin', methods=['GET', 'POST'])
@@ -98,100 +102,85 @@ def admin():
         return "Unauthorized", 401
 
     if request.method == 'POST':
-        if 'update_id' in request.form:
-            # Admin updating existing FAQ
-            update_id = request.form['update_id']
-            updated_question = request.form['updated_question']
-            updated_answer = request.form['updated_answer']
+        form = request.form
+        files = request.files
 
+        if 'update_id' in form:
             conn = sqlite3.connect(DATABASE)
             cursor = conn.cursor()
-            cursor.execute("UPDATE facts SET question = ?, answer = ? WHERE id = ?", (updated_question, updated_answer, update_id))
+            cursor.execute("UPDATE facts SET question = ?, answer = ? WHERE id = ?", (form['updated_question'], form['updated_answer'], form['update_id']))
             conn.commit()
             conn.close()
-            return redirect('/admin')
 
-        elif 'answer_id' in request.form:
-            # Admin answering unanswered question
-            answer_id = request.form['answer_id']
-            answer_text = request.form['answer_text']
-
+        elif 'answer_id' in form:
             conn = sqlite3.connect(DATABASE)
             cursor = conn.cursor()
-            cursor.execute("SELECT question FROM unanswered_questions WHERE id = ?", (answer_id,))
+            cursor.execute("SELECT question FROM unanswered_questions WHERE id = ?", (form['answer_id'],))
             row = cursor.fetchone()
             if row:
-                question = row[0]
-                cursor.execute("INSERT INTO facts (question, answer) VALUES (?, ?)", (question, answer_text))
-                cursor.execute("DELETE FROM unanswered_questions WHERE id = ?", (answer_id,))
+                cursor.execute("INSERT INTO facts (question, answer) VALUES (?, ?)", (row[0], form['answer_text']))
+                cursor.execute("DELETE FROM unanswered_questions WHERE id = ?", (form['answer_id'],))
                 conn.commit()
             conn.close()
-            return redirect('/admin')
 
-        elif 'delete_fact_id' in request.form:
-            # Admin deleting a FAQ
-            delete_id = request.form['delete_fact_id']
-
+        elif 'delete_fact_id' in form:
             conn = sqlite3.connect(DATABASE)
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM facts WHERE id = ?", (delete_id,))
+            cursor.execute("DELETE FROM facts WHERE id = ?", (form['delete_fact_id'],))
             conn.commit()
             conn.close()
-            return redirect('/admin')
 
-        elif 'delete_unanswered_id' in request.form:
-            # Admin deleting an unanswered question
-            delete_unanswered_id = request.form['delete_unanswered_id']
-
+        elif 'delete_unanswered_id' in form:
             conn = sqlite3.connect(DATABASE)
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM unanswered_questions WHERE id = ?", (delete_unanswered_id,))
+            cursor.execute("DELETE FROM unanswered_questions WHERE id = ?", (form['delete_unanswered_id'],))
             conn.commit()
             conn.close()
-            return redirect('/admin')
 
-        elif 'excel_file' in request.files:
-            # Admin uploading Excel
-            file = request.files['excel_file']
-            print(file.filename.endswith('.xlsx'))
-            if file.filename.endswith('.xlsx'):
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-                file.save(filepath)
+        elif 'excel_file' in files and files['excel_file'].filename.endswith('.xlsx'):
+            file = files['excel_file']
+            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(path)
+            df = pd.read_excel(path)
+            if 'Question' in df.columns and 'Answer' in df.columns:
+                conn = sqlite3.connect(DATABASE)
+                cursor = conn.cursor()
+                for _, row in df.iterrows():
+                    question = str(row['Question']).strip()
+                    answer = str(row['Answer']).strip()
+                    cursor.execute("SELECT id FROM facts WHERE question = ?", (question,))
+                    if not cursor.fetchone():
+                        cursor.execute("INSERT INTO facts (question, answer) VALUES (?, ?)", (question, answer))
+                conn.commit()
+                conn.close()
+            os.remove(path)
 
-                # Process Excel
-                df = pd.read_excel(filepath)
-
-                if 'Question' in df.columns and 'Answer' in df.columns:
-                    conn = sqlite3.connect(DATABASE)
-                    cursor = conn.cursor()
-
-                    for index, row in df.iterrows():
-                        question = str(row['Question']).strip()
-                        answer = str(row['Answer']).strip()
-
-                        cursor.execute("SELECT id FROM facts WHERE question = ?", (question,))
-                        exists = cursor.fetchone()
-                        if not exists:
-                            cursor.execute("INSERT INTO facts (question, answer) VALUES (?, ?)", (question, answer))
-
-                    conn.commit()
-                    conn.close()
-                
-                os.remove(filepath)
-
-            return redirect('/admin')
-
-        else:
-            # Manually adding question-answer
-            question = request.form['question']
-            answer = request.form['answer']
-
+        elif 'intents_file' in files and files['intents_file'].filename.endswith('.json'):
+            file = files['intents_file']
+            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(path)
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
             conn = sqlite3.connect(DATABASE)
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO facts (question, answer) VALUES (?, ?)", (question, answer))
+            for intent in data.get('intents', []):
+                for pattern in intent.get('patterns', []):
+                    for response in intent.get('responses', []):
+                        cursor.execute("SELECT id FROM facts WHERE question = ?", (pattern,))
+                        if not cursor.fetchone():
+                            cursor.execute("INSERT INTO facts (question, answer) VALUES (?, ?)", (pattern, response))
             conn.commit()
             conn.close()
-            return redirect('/admin')
+            os.remove(path)
+
+        elif 'question' in form and 'answer' in form:
+            conn = sqlite3.connect(DATABASE)
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO facts (question, answer) VALUES (?, ?)", (form['question'], form['answer']))
+            conn.commit()
+            conn.close()
+
+        return redirect('/admin')
 
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
@@ -206,8 +195,7 @@ def admin():
 @app.route('/ask', methods=['POST'])
 def ask():
     question = request.form['question']
-    response = get_answer(question)
-    return jsonify(response)
+    return jsonify(get_answer(question))
 
 @app.route('/logout')
 def logout():

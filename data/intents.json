@@ -1,0 +1,170 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns": [
+        "Hi",
+        "Hello",
+        "Hey",
+        "Hey there",
+        "Good morning",
+        "Good afternoon",
+        "Good evening",
+        "Hiya",
+        "What's up",
+        "How’s it going?"
+      ],
+      "responses": [
+        "Hello! How can I assist you today?",
+        "Hi there! What can I do for you?",
+        "Hey! How can I help?"
+      ]
+    },
+    {
+      "tag": "goodbye",
+      "patterns": [
+        "Bye",
+        "Goodbye",
+        "See you later",
+        "Talk to you soon",
+        "Catch you later",
+        "Take care"
+      ],
+      "responses": [
+        "Goodbye! Have a great day!",
+        "See you later!",
+        "Take care!"
+      ]
+    },
+    {
+      "tag": "thanks",
+      "patterns": [
+        "Thanks",
+        "Thank you",
+        "Thanks a lot",
+        "Thanks so much",
+        "Much appreciated",
+        "Appreciate it"
+      ],
+      "responses": [
+        "You're welcome!",
+        "Happy to help!",
+        "No problem!"
+      ]
+    },
+    {
+      "tag": "acknowledgment",
+      "patterns": [
+        "Okay",
+        "Ok",
+        "Ah",
+        "Alright",
+        "Got it",
+        "Sounds good",
+        "Hmm",
+        "Cool",
+        "Nice",
+        "Right",
+        "Great",
+        "Understood"
+      ],
+      "responses": [
+        "👍",
+        "Gotcha!",
+        "Great!",
+        "Alright!",
+        "Perfect!"
+      ]
+    },
+    {
+      "tag": "feeling_great",
+      "patterns": [
+        "I'm good",
+        "I'm fine",
+        "Doing well",
+        "Feeling great",
+        "I'm okay",
+        "All good",
+        "Not bad"
+      ],
+      "responses": [
+        "Glad to hear that!",
+        "Awesome!",
+        "That's great!"
+      ]
+    },
+    {
+      "tag": "how_are_you",
+      "patterns": [
+        "How are you?",
+        "How’s everything?",
+        "Are you okay?",
+        "How you doing?",
+        "You good?"
+      ],
+      "responses": [
+        "I'm doing great, thank you!",
+        "All good on my side!",
+        "I'm here to help you!"
+      ]
+    },
+    {
+      "tag": "confused",
+      "patterns": [
+        "I don't understand",
+        "What do you mean?",
+        "Huh?",
+        "Wait, what?",
+        "Can you explain again?"
+      ],
+      "responses": [
+        "Let me try explaining it differently.",
+        "Sure! Here’s a simpler way to say it...",
+        "No worries, I’ll break it down for you."
+      ]
+    },
+    {
+      "tag": "laughter",
+      "patterns": [
+        "Haha",
+        "Lol",
+        "That's funny",
+        "Hehe",
+        "Lmao"
+      ],
+      "responses": [
+        "😄",
+        "Glad you found it funny!",
+        "Haha, I try!"
+      ]
+    },
+    {
+      "tag": "silent_response",
+      "patterns": [
+        "....",
+        "You there?",
+        "Hello?",
+        "Still with me?"
+      ],
+      "responses": [
+        "I’m still here!",
+        "Yes? Just thinking 🤔",
+        "Sorry, I zoned out 😅"
+      ]
+    },
+    {
+      "tag": "joke_request",
+      "patterns": [
+        "Tell me a joke",
+        "Make me laugh",
+        "Do you know a joke?",
+        "Say something funny"
+      ],
+      "responses": [
+        "Why don’t skeletons fight each other? They don’t have the guts.",
+        "I would tell you a construction joke, but I’m still working on it.",
+        "Why did the scarecrow win an award? Because he was outstanding in his field!"
+      ]
+    }
+  ]
+}
