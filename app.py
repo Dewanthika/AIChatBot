@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+app.secret_key = '12345'
 DATABASE = 'bank.db'
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -90,21 +90,21 @@ def admin():
     if session.get('user') != 'admin':
         return "Unauthorized", 401
 
-    if 'update_id' in request.form:
-        # Admin updating existing FAQ
-        update_id = request.form['update_id']
-        updated_question = request.form['updated_question']
-        updated_answer = request.form['updated_answer']
-
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE facts SET question = ?, answer = ? WHERE id = ?", (updated_question, updated_answer, update_id))
-        conn.commit()
-        conn.close()
-        return redirect('/admin')
-
     if request.method == 'POST':
-        if 'answer_id' in request.form:
+        if 'update_id' in request.form:
+            # Admin updating existing FAQ
+            update_id = request.form['update_id']
+            updated_question = request.form['updated_question']
+            updated_answer = request.form['updated_answer']
+
+            conn = sqlite3.connect(DATABASE)
+            cursor = conn.cursor()
+            cursor.execute("UPDATE facts SET question = ?, answer = ? WHERE id = ?", (updated_question, updated_answer, update_id))
+            conn.commit()
+            conn.close()
+            return redirect('/admin')
+
+        elif 'answer_id' in request.form:
             # Admin answering unanswered question
             answer_id = request.form['answer_id']
             answer_text = request.form['answer_text']
@@ -121,9 +121,32 @@ def admin():
             conn.close()
             return redirect('/admin')
 
+        elif 'delete_fact_id' in request.form:
+            # Admin deleting a FAQ
+            delete_id = request.form['delete_fact_id']
+
+            conn = sqlite3.connect(DATABASE)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM facts WHERE id = ?", (delete_id,))
+            conn.commit()
+            conn.close()
+            return redirect('/admin')
+
+        elif 'delete_unanswered_id' in request.form:
+            # Admin deleting an unanswered question
+            delete_unanswered_id = request.form['delete_unanswered_id']
+
+            conn = sqlite3.connect(DATABASE)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM unanswered_questions WHERE id = ?", (delete_unanswered_id,))
+            conn.commit()
+            conn.close()
+            return redirect('/admin')
+
         elif 'excel_file' in request.files:
             # Admin uploading Excel
             file = request.files['excel_file']
+            print(file.filename.endswith('.xlsx'))
             if file.filename.endswith('.xlsx'):
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
                 file.save(filepath)
@@ -131,13 +154,13 @@ def admin():
                 # Process Excel
                 df = pd.read_excel(filepath)
 
-                if 'question' in df.columns and 'answer' in df.columns:
+                if 'Question' in df.columns and 'Answer' in df.columns:
                     conn = sqlite3.connect(DATABASE)
                     cursor = conn.cursor()
 
                     for index, row in df.iterrows():
-                        question = str(row['question']).strip()
-                        answer = str(row['answer']).strip()
+                        question = str(row['Question']).strip()
+                        answer = str(row['Answer']).strip()
 
                         cursor.execute("SELECT id FROM facts WHERE question = ?", (question,))
                         exists = cursor.fetchone()

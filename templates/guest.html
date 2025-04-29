@@ -1,34 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Guest Chatbot</title>
-</head>
-<body>
-    <h2>Welcome to Bank Chatbot</h2>
-    <form id="chat-form">
-        <input type="text" id="question" placeholder="Type your question..." required>
-        <button type="submit">Ask</button>
-    </form>
-    <div id="response" style="margin-top:20px;"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bank Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="bank-icon">B</div>
+        <h2>Bank Assistant</h2>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="message bot-message">
+          Hello! I'm your Bank Assistant. How can I help you today?
+        </div>
+
+        <!-- Loading indicator -->
+        <div class="loading-indicator" id="loading-indicator">
+          <div class="typing-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input">
+        <form id="chat-form" class="chat-form">
+          <input
+            type="text"
+            id="question"
+            placeholder="Type your question..."
+            required
+          />
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="admin-link">
+      <a href="/login">Admin Login</a>
+    </div>
 
     <script>
-        document.getElementById('chat-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const question = document.getElementById('question').value;
+      document
+        .getElementById("chat-form")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const question = document.getElementById("question").value;
+          if (!question.trim()) return;
 
-            const response = await fetch('/ask', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `question=${encodeURIComponent(question)}`
+          // Add user message to chat
+          const chatMessages = document.getElementById("chat-messages");
+          const userMessage = document.createElement("div");
+          userMessage.className = "message user-message";
+          userMessage.textContent = question;
+          chatMessages.appendChild(userMessage);
+
+          // Clear input
+          document.getElementById("question").value = "";
+
+          // Show loading indicator
+          const loadingIndicator = document.getElementById("loading-indicator");
+          loadingIndicator.style.display = "block";
+
+          // Scroll to bottom
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+
+          try {
+            const response = await fetch("/ask", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: `question=${encodeURIComponent(question)}`,
             });
 
             const data = await response.json();
-            document.getElementById('response').innerText = data.bot_response;
+
+            // Hide loading indicator
+            loadingIndicator.style.display = "none";
+
+            // Add bot response
+            const botMessage = document.createElement("div");
+            botMessage.className = "message bot-message";
+            botMessage.textContent = data.bot_response;
+            chatMessages.appendChild(botMessage);
+
+            // Scroll to bottom again
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+          } catch (error) {
+            // Hide loading indicator
+            loadingIndicator.style.display = "none";
+
+            // Show error message
+            const errorMessage = document.createElement("div");
+            errorMessage.className = "message bot-message";
+            errorMessage.textContent =
+              "Sorry, I couldn't process your request. Please try again.";
+            chatMessages.appendChild(errorMessage);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+          }
         });
     </script>
-    <p><a href="/login">Admin Login</a></p>
-</body>
+  </body>
 </html>

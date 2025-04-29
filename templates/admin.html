@@ -1,64 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-    <h2>Admin Dashboard - Add Question & Answer</h2>
+  <div class="container">
+    <header>
+      <h1>Admin Panel</h1>
+    </header>
 
-    <form method="POST" enctype="multipart/form-data">
-        <h3>Upload Excel Sheet (Question & Answer):</h3>
-        <input type="file" name="excel_file" accept=".xlsx" required><br><br>
-        <button type="submit">Upload Excel</button>
-    </form>
-
-    <hr>
-
-    <form method="POST">
-        <h3>Manually Add New FAQ:</h3>
-        Question: <input type="text" name="question" required><br><br>
-        Answer: <textarea name="answer" required></textarea><br><br>
+    <section>
+      <h2>Add a New FAQ</h2>
+      <form method="POST">
+        <div class="input-group">
+          <label for="question">Question</label>
+          <input type="text" name="question" id="question" placeholder="Enter the question" required />
+        </div>
+        <div class="input-group">
+          <label for="answer">Answer</label>
+          <textarea name="answer" id="answer" placeholder="Enter the answer" rows="3" required></textarea>
+        </div>
         <button type="submit">Add FAQ</button>
-    </form>
+      </form>
+    </section>
 
-    <hr>
+    <section>
+      <h2>Upload FAQs via Excel</h2>
+      <form method="POST" enctype="multipart/form-data">
+        <div class="input-group">
+          <label for="excel_file">Choose Excel File</label>
+          <input type="file" name="excel_file" id="excel_file" accept=".xlsx" required />
+        </div>
+        <button type="submit">Upload</button>
+      </form>
+    </section>
 
-    <h3>Unanswered Questions:</h3>
-    {% for id, question in unanswered %}
-        <form method="POST" style="border:1px solid #ccc; padding:10px; margin:10px;">
-            <b>Q:</b> {{ question }}<br><br>
-            <input type="hidden" name="answer_id" value="{{ id }}">
-            Answer: <textarea name="answer_text" required></textarea><br><br>
-            <button type="submit">Submit Answer</button>
-        </form>
-    {% else %}
-        <p>No unanswered questions!</p>
-    {% endfor %}
-
-    <hr>
-
-    <h3>All FAQs:</h3>
-    <table border="1" cellpadding="5" cellspacing="0">
-        <tr>
+    <section>
+      <h2>Existing FAQs</h2>
+      <table>
+        <thead>
+          <tr>
             <th>Question</th>
             <th>Answer</th>
-            <th>Action</th>
-        </tr>
-        {% for id, question, answer in data %}
-        <tr>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for id, question, answer in data %}
+          <tr>
             <form method="POST">
-                <td><input type="text" name="updated_question" value="{{ question }}" required style="width: 300px;"></td>
-                <td><textarea name="updated_answer" required style="width: 300px;">{{ answer }}</textarea></td>
-                <td>
-                    <input type="hidden" name="update_id" value="{{ id }}">
-                    <button type="submit">Update</button>
-                </td>
+              <td data-label="Question">
+                <input type="text" name="updated_question" value="{{ question }}" required />
+                <input type="hidden" name="update_id" value="{{ id }}" />
+              </td>
+              <td data-label="Answer">
+                <textarea name="updated_answer" required>{{ answer }}</textarea>
+              </td>
+              <td class="action-btns" data-label="Actions">
+                <button type="submit" class="update">Update</button>
             </form>
-        </tr>
-        {% endfor %}
-    </table>
+            <form method="POST">
+                <input type="hidden" name="delete_fact_id" value="{{ id }}" />
+                <button type="submit" class="delete" onclick="return confirm('Are you sure you want to delete this FAQ?');">Delete</button>
+            </form>
+              </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
 
-    <br><a href="/logout">Logout</a>
+    <section>
+      <h2>Unanswered Questions</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Answer It</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for id, question in unanswered %}
+          <tr>
+            <form method="POST">
+              <td data-label="Question">{{ question }}</td>
+              <td data-label="Answer It">
+                <textarea name="answer_text" placeholder="Type your answer" required></textarea>
+                <input type="hidden" name="answer_id" value="{{ id }}" />
+                <button type="submit">Submit Answer</button>
+              </td>
+            </form>
+            <form method="POST">
+              <td data-label="Delete">
+                <input type="hidden" name="delete_unanswered_id" value="{{ id }}" />
+                <button class="delete" type="submit" onclick="return confirm('Are you sure you want to delete this question?');">Delete</button>
+              </td>
+            </form>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <div class="logout">
+      <a href="/logout">Logout</a>
+    </div>
+
+  </div>
 </body>
 </html>
