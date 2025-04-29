@@ -39,18 +39,25 @@ def get_answer(question):
     cursor = conn.cursor()
     cursor.execute("SELECT question, answer FROM facts")
     rows = cursor.fetchall()
+    conn.close()
 
     best_match = None
     best_score = 0
+
     for db_question, answer in rows:
-        score = fuzz.partial_ratio(question.lower(), db_question.lower())
-        if score > best_score:
-            best_score = score
+        # Different fuzzy methods
+        partial_score = fuzz.partial_ratio(question.lower(), db_question.lower())
+        token_sort_score = fuzz.token_sort_ratio(question.lower(), db_question.lower())
+        token_set_score = fuzz.token_set_ratio(question.lower(), db_question.lower())
+
+        # Combined weighted score
+        combined_score = (partial_score * 0.3) + (token_sort_score * 0.3) + (token_set_score * 0.4)
+
+        if combined_score > best_score:
+            best_score = combined_score
             best_match = (db_question, answer)
 
-    conn.close()
-
-    if best_score >= 80:
+    if best_score >= 75:  # Slightly lower threshold for better flexibility
         return {"bot_response": best_match[1], "needs_learning": False}
     else:
         save_unanswered_question(question)
